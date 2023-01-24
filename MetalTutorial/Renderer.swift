@@ -12,8 +12,7 @@ class Renderer: NSObject, MTKViewDelegate {
     var parent: ContentView
     var metalDevice: MTLDevice!
     var metalCommandQueue: MTLCommandQueue!
-    let pipelineState: MTLRenderPipelineState
-    let vertexBuffer: MTLBuffer
+    var pipelineState: MTLRenderPipelineState!
     
     init(_ parent: ContentView){
         
@@ -22,27 +21,49 @@ class Renderer: NSObject, MTKViewDelegate {
             self.metalDevice = metalDevice
         }
         self.metalCommandQueue = metalDevice.makeCommandQueue()
+        pipelineState = nil
+        super.init()
         
+        pipelineState = buildPipelineState(device: metalDevice)
+        
+    }
+    
+    private func buildPipelineState(device: MTLDevice) -> MTLRenderPipelineState{
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        let library = metalDevice.makeDefaultLibrary()
-        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertexShader")
-        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragmentShader")
+        let library = device.makeDefaultLibrary()
+        pipelineDescriptor.vertexFunction = library?.makeFunction(name: "vertex_shader")
+        pipelineDescriptor.fragmentFunction = library?.makeFunction(name: "fragment_shader")
         pipelineDescriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
-        
         do {
-            try pipelineState = metalDevice.makeRenderPipelineState(descriptor: pipelineDescriptor)
-        } catch {
+            let pipelineState = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+            return pipelineState
+        }
+        catch {
             fatalError()
         }
         
+    }
+    
+    
+    private func buildModel() -> MTLBuffer {
         let vertices = [
             Vertex(position: [0,0], color: [1,0,0,1]),
             Vertex(position: [1,1], color: [0,1,0,1]),
             Vertex(position: [0,1], color: [0,0,1,1]),
         ]
-        vertexBuffer = metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
-        super.init()
+        return metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
     }
+    
+    private func buildModel2() -> MTLBuffer {
+        let vertices = [
+            Vertex(position: [0,0], color: [1,0,0,1]),
+            Vertex(position: [1,1], color: [0,1,0,1]),
+            Vertex(position: [1,0], color: [0,0,1,1]),
+        ]
+        return metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
+    }
+    
+    
     
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -65,15 +86,18 @@ class Renderer: NSObject, MTKViewDelegate {
         let renderEncoder = commandBuffer?.makeRenderCommandEncoder(descriptor: renderPassDescriptor!)
         
         renderEncoder?.setRenderPipelineState(pipelineState)
-        renderEncoder?.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
+        
+        renderEncoder?.setVertexBuffer( buildModel(), offset: 0, index: 0)
         renderEncoder?.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        
+        renderEncoder?.setVertexBuffer( buildModel2(), offset: 0, index: 0)
+        renderEncoder?.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        
+       
         
         renderEncoder?.endEncoding()
         
         commandBuffer?.present(drawable)
         commandBuffer?.commit()
     }
-
-    
-    
 }

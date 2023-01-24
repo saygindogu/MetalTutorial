@@ -15,7 +15,7 @@ struct Fragment {
     float4 color;
 };
 
-vertex Fragment vertexShader(const device Vertex *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
+vertex Fragment vertex_shader(const device Vertex *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
     Vertex input = vertexArray[vid];
     
     Fragment output;
@@ -25,6 +25,6 @@ vertex Fragment vertexShader(const device Vertex *vertexArray [[buffer(0)]], uns
     return output;
 }
 
-fragment float4 fragmentShader(Fragment input [[stage_in]]){
+fragment float4 fragment_shader(Fragment input [[stage_in]]){
     return input.color;
 }
