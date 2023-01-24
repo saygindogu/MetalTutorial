@@ -12,7 +12,10 @@ class Renderer: NSObject, MTKViewDelegate {
     var parent: ContentView
     var metalDevice: MTLDevice!
     var metalCommandQueue: MTLCommandQueue!
-    var pipelineState: MTLRenderPipelineState!
+    var pipelineState: MTLRenderPipelineState?
+    let indices: Array<UInt16>
+    var indexBuffer: MTLBuffer?
+    var vertexBuffer: MTLBuffer?
     
     init(_ parent: ContentView){
         
@@ -21,10 +24,13 @@ class Renderer: NSObject, MTKViewDelegate {
             self.metalDevice = metalDevice
         }
         self.metalCommandQueue = metalDevice.makeCommandQueue()
-        pipelineState = nil
+        self.indices = [
+            0,1,2,
+            2,3,0
+        ]
         super.init()
-        
         pipelineState = buildPipelineState(device: metalDevice)
+        buildModel()
         
     }
     
@@ -45,25 +51,16 @@ class Renderer: NSObject, MTKViewDelegate {
     }
     
     
-    private func buildModel() -> MTLBuffer {
+    private func buildModel(){
         let vertices = [
-            Vertex(position: [0,0], color: [1,0,0,1]),
-            Vertex(position: [1,1], color: [0,1,0,1]),
-            Vertex(position: [0,1], color: [0,0,1,1]),
+            Vertex(position: [0,0], color: [1,0,0,1]), // V0
+            Vertex(position: [0,1], color: [0,0,1,1]), // V1
+            Vertex(position: [1,1], color: [0,1,0,1]), // V2
+            Vertex(position: [1,0], color: [0,0,1,1]), // V3
         ]
-        return metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
+        vertexBuffer = metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
+        indexBuffer = metalDevice.makeBuffer(bytes: indices, length: indices.count * MemoryLayout<UInt16>.size, options: [])!
     }
-    
-    private func buildModel2() -> MTLBuffer {
-        let vertices = [
-            Vertex(position: [0,0], color: [1,0,0,1]),
-            Vertex(position: [1,1], color: [0,1,0,1]),
-            Vertex(position: [1,0], color: [0,0,1,1]),
-        ]
-        return metalDevice.makeBuffer(bytes: vertices, length: vertices.count * MemoryLayout<Vertex>.stride, options: [])!
-    }
-    
-    
     
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -85,15 +82,10 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let renderEncoder = commandBuffer?.makeRenderCommandEncoder(descriptor: renderPassDescriptor!)
         
-        renderEncoder?.setRenderPipelineState(pipelineState)
+        renderEncoder?.setRenderPipelineState(pipelineState!)
         
-        renderEncoder?.setVertexBuffer( buildModel(), offset: 0, index: 0)
-        renderEncoder?.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        
-        renderEncoder?.setVertexBuffer( buildModel2(), offset: 0, index: 0)
-        renderEncoder?.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        
-       
+        renderEncoder?.setVertexBuffer(vertexBuffer!, offset: 0, index: 0)
+        renderEncoder?.drawIndexedPrimitives(type: .triangle, indexCount: indices.count, indexType: .uint16, indexBuffer: indexBuffer!, indexBufferOffset: 0)
         
         renderEncoder?.endEncoding()
         
