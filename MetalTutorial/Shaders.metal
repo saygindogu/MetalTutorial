@@ -10,16 +10,22 @@ using namespace metal;
 
 #include "definitions.h"
 
+struct Constants {
+    float animateBy;
+};
+
 struct Fragment {
     float4 position [[position]];
     float4 color;
 };
 
-vertex Fragment vertex_shader(const device Vertex *vertexArray [[buffer(0)]], unsigned int vid [[vertex_id]]){
+vertex Fragment vertex_shader(const device Vertex *vertexArray [[buffer(0)]],
+                              constant Constants &constants [[ buffer(1)]],
+                              unsigned int vid [[vertex_id]]){
     Vertex input = vertexArray[vid];
     
     Fragment output;
-    output.position = float4(input.position.x, input.position.y, 0, 1);
+    output.position = float4(input.position.x + constants.animateBy, input.position.y, 0, 1);
     output.color = input.color;
     
     return output;

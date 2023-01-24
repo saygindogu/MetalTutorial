@@ -17,6 +17,14 @@ class Renderer: NSObject, MTKViewDelegate {
     var indexBuffer: MTLBuffer?
     var vertexBuffer: MTLBuffer?
     
+    struct Constants {
+        var animateBy: Float = 0.0
+    }
+    
+    var constants = Constants()
+    
+    var time: Float = 0.0
+    
     init(_ parent: ContentView){
         
         self.parent = parent
@@ -75,6 +83,11 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let commandBuffer = metalCommandQueue.makeCommandBuffer()
         
+        time += 1.0 / Float(view.preferredFramesPerSecond)
+        
+        let animateBy = abs(sin(time)/2 + 0.5)
+        constants.animateBy = animateBy
+        
         let renderPassDescriptor = view.currentRenderPassDescriptor
         renderPassDescriptor?.colorAttachments[0].clearColor = MTLClearColorMake(0,0.5,0.5,1.0)
         renderPassDescriptor?.colorAttachments[0].loadAction = .clear
@@ -85,6 +98,7 @@ class Renderer: NSObject, MTKViewDelegate {
         renderEncoder?.setRenderPipelineState(pipelineState!)
         
         renderEncoder?.setVertexBuffer(vertexBuffer!, offset: 0, index: 0)
+        renderEncoder?.setVertexBytes(&constants, length: MemoryLayout<Constants>.stride, index: 1)
         renderEncoder?.drawIndexedPrimitives(type: .triangle, indexCount: indices.count, indexType: .uint16, indexBuffer: indexBuffer!, indexBufferOffset: 0)
         
         renderEncoder?.endEncoding()
